@@ -1,9 +1,9 @@
 {
-  "name": "Dm Consultoria - Integração ",
-  "short_description": "Integração com PiPefy",
-  "description": "Integração com PiPefy",
+  "name": "Github",
+  "short_description": "Manage all pull requests directly in Pipefy",
+  "description": "Manage all pull requests directly in Pipefy",
   "icon": "./images/icon.png",
-  "author": "DMConsultoria",
+  "author": "Pipefy Inc",
   "init_url": "./",
   "screenshots": ["./images/screenshots/1.png"],
   "features": [

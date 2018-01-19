@@ -6,7 +6,6 @@
   <body>
     <script src="https://d1ukdhoxof1oxs.cloudfront.net/client.js"></script>
     <script src="https://unpkg.com/github-api/dist/GitHub.bundle.min.js"></script>
-    <script type="text/javascript" src="./js/table.js"></script>
     <script>
       // Use Promise available from pipefyClient
       var Promise = pipefyClient.Promise;
@@ -17,36 +16,254 @@
       var ICON_PR_YELLOW = "./images/icon-pr-yellow.svg";
       var ICON_PR_GREEN = "./images/icon-pr-green.svg";
 
-      var showInitialDropdown = function(p) {
-        // Simple list of items with callback
-        p.dropdown({
-          title: 'Shopping',
-          items: [
-            {
-              title: 'Barra Shopping',
-              callback:  function(p) { p.showNotification('Barra shopping selecionado', 'success'); },
-            },
-            {
-              title: 'Downtown',
-              callback: function(p) { /*p.modal(...)*/ },
-            },
-            {
-              title: 'Salvador Shopping',
-              callback: function(p) { p.closeCard() },
-            },
-          ]
+      var getToken = function(p) {
+        return new Promise(function(resolve, reject) {
+          var tokenKey = 'githubToken' + p.pipeId;
+          var token = null;
+
+          try {
+            token = sessionStorage.getItem(tokenKey);
+          } catch(err) {
+          }
+
+          if (token && token !== "null") {
+            resolve(token);
+          } else {
+            p.get('pipe', 'private', 'token').then(function(newToken) {
+              try {
+                sessionStorage.setItem(tokenKey, newToken);
+              } catch(err) {
+              }
+              resolve(newToken);
+            }).catch(function(error) {
+              reject(Error("It broke"));
+            });
+          }
+        });
+      }
+
+      var ghClient = function(p) {
+        return new Promise(function(resolve, reject) {
+          getToken(p).then(function(token) {
+            resolve(new GitHub({ token: token }));
+          }).catch(function(error) {
+            reject(Error("It broke"));
+          });
         });
       };
 
-     
+
+      var showInitialDropdown = function(p) {
+        p.dropdown({
+          title: "Github",
+          items: [
+            {
+              title: 'Attach Pull Request',
+              callback: function(p) {
+                searchRepositories(p)
+              }
+            },
+          ],
+        });
+      };
+
+      var getRequests = function(p, attachments) {
+        return attachments.map(function(a){
+          var matches = a.url.match(/github.com\/(.+)\/(.+)\/pull\/(.+)/)
+          var owner = matches[1]
+          var repo = matches[2]
+          var number = matches[3]
+
+          return ghClient(p).then(function(github) {
+            return github.getRepo(owner, repo).getPullRequest(number)
+          });
+        });
+      };
+
+      var showAuthorizeDropdown = function(p) {
+        p.dropdown({
+          title: 'Github',
+          items: [
+            {
+              title: 'Authorize Github',
+              callback: function(p) {
+                p.oAuthAuthorize(window.location.origin + '/authorize', {
+                  width: '500px',
+                  height: '800px'
+                }).then(function(token){
+                  p.set('pipe', 'private', 'token', token).then(function() {
+                    setTimeout(function() {
+                      searchRepositories(p);
+                    }, 500)
+                  });
+                });
+              }
+            },
+          ]
+        })
+      }
+
+      // Function to display Search to lookup for Pull Requests
+      var searchPullRequests = function(p, repo) {
+        p.search({
+          title: 'Select Pull Requests',
+          placeholder: 'PR number or title',
+          empty: 'No PR found',
+          loading: 'Looking for PRs...',
+          items: function(p, query) {
+            return new Promise(function(resolve) {
+              ghClient(p).then(function(github) {
+                github.getRepo(repo.owner.login, repo.name)
+                  .listPullRequests({ state: 'all', sort: 'updated', direction: 'desc' })
+                  .then(function(result) {
+                    var data = result.data.map(function(pr) {
+                      var title = "#" + pr.number + " " + pr.title;
+                      return ({
+                        title: title,
+                        callback: function(p) {
+                          p.attach({ url: pr.html_url , name: title })
+                            .then(function(p) {
+                              p.closeDropdown();
+                            });
+                        }
+                      });
+                    });
+
+                    if (query && query.length) {
+                      var newItems = data.filter(function(pr) {
+                        return pr.title.toLowerCase().indexOf(query.toLowerCase()) >= 0;
+                      });
+                      resolve(newItems);
+                    } else {
+                      resolve(data)
+                    }
+                });
+              });
+            });
+          }
+        })
+      };
+
+      // Function to display Search to lookup for repositories
+      var searchRepositories = function(p) {
+        p.search({
+          title: 'Select Repository',
+          placeholder: 'Search Repositories',
+          empty: 'No Repo found',
+          loading: 'Looking for Repos...',
+          items: function(p, query) {
+            return new Promise(function(resolve) {
+              ghClient(p).then(function(github) {
+                github.getUser().listRepos({sort: 'pushed', per_page: 100}).then(function(repos) {
+                  var repoNames = repos.data.map(function(repo) {
+                    return {
+                      title: repo.full_name,
+                      callback: function(p) {
+                        searchPullRequests(p, repo)
+                      }
+                    }
+                  });
+
+                  if (query && query.length) {
+                    var newItems = repoNames.filter(function(repoName) {
+                      return repoName.title.toLowerCase().indexOf(query.toLowerCase()) >= 0;
+                    });
+                    resolve(newItems);
+                  } else {
+                    resolve(repoNames)
+                  }
+                });
+              });
+            });
+          }
+        });
+      }
+
+      var getCountBadge = function(p, options){
+        return new Promise(function(resolve) {
+          p.cardAttachments().then(function(attachments) {
+            var claimed = attachments.filter(function(attachment){
+              return attachment.url.indexOf('https://github.com') === 0;
+            });
+
+            if (claimed && claimed.length) {
+              resolve({
+                text: claimed.length,
+                icon: ICON_GRAY,
+                title: claimed.length + " Github PRs attached to this card",
+              })
+            } else {
+              resolve(null)
+            }
+          });
+        });
+      };
+
+      var getMergedBadge = function(p, options){
+        return new Promise(function(resolve) {
+          getToken(p).then(function(token) {
+            if(token && token !== "null") {
+              p.cardAttachments().then(function(attachments) {
+                var claimed = attachments.filter(function(attachment){
+                  return attachment.url.indexOf('https://github.com') === 0;
+                });
+
+                if (claimed && claimed.length) {
+                  Promise.all(this.getRequests(p, claimed)).then(function(responses) {
+
+                    var prs = responses.map(function(res) {
+                      return {
+                        merged: res.data.merged,
+                        state: res.data.state,
+                      }
+                    });
+
+                    var closed = prs.filter(function(pr) { return pr.state == 'closed' }).length;
+                    var text = closed + '/' + claimed.length;
+                    var color = "yellow";
+                    var icon = ICON_PR_YELLOW;
+
+                    if (closed == claimed.length) {
+                      color = "green";
+                      icon = ICON_PR_GREEN;
+                    }
+
+                    resolve({
+                      text: text,
+                      color: color,
+                      icon: icon,
+                      title: text + " PRs closed on this card",
+                    });
+                  });
+                } else {
+                  resolve(null)
+                }
+              });
+            } else {
+              resolve(null);
+            }
+          });
+        });
+      };
 
       document.addEventListener("DOMContentLoaded", function(event) {
         pipefyClient.initCall({
+          'card-badges': function(p, options){
+              return [
+                {
+                  live: getCountBadge,
+                },
+                {
+                  live: getMergedBadge,
+                  refreshInterval: 100,
+                },
+              ];
+          },
           'card-tab': function(p, options) {
             return {
-              icon: './images/power-cord.svg',
-              title: 'DM Consultoria',
-              url: './form.html',
+              icon: 'pp-ico-github',
+              title: 'Github',
+              url: './attachments.html',
               claimedAttachments: function(attachments) {
                 // Iterate by all attachment to claim attachments from Github
                 return attachments.filter(function(attachment){
@@ -55,20 +272,15 @@
               },
               buttons: [
                 {
-                  text: 'Salvar',
+                  text: 'Attach',
                   callback: function(p) {
-                    //showInitialDropdown(p);
-                    createtable();
-                    
-                    p.showNotification('Formulario salvo!', 'success');
-                    /*
                     getToken(p).then(function(token) {
                       if (token && token !== "null") {
                         showInitialDropdown(p);
                       } else {
                         showAuthorizeDropdown(p);
                       }
-                    });*/
+                    });
                   }
                 },
               ]

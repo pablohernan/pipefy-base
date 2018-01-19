@@ -1,2 +1,2 @@
-# pipefy-base
-Integração com Pipely
+# github-app
+Pipefy Github App
