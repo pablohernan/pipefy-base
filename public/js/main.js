@@ -1,6 +1,7 @@
 import React from 'react';
-import { render } from 'react-dom';
-import { Dropdown } from 'react-pipestyle';
+import ReactDOM from 'react-dom';
+import Attachments from './attachments.jsx';
+import Dropdown from 'react-pipestyle';
 
 const App = () => (
   <div>
@@ -34,4 +35,5 @@ const App = () => (
   </div>
 );
 
-render(<App />, document.getElementById('attachments'));
+
+ReactDOM.render(<App />, document.getElementById('attachments'));
