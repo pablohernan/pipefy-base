@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://d1ukdhoxof1oxs.cloudfront.net/client.js"></script>
+  </head>
+  <body>
+    Redirecting...
+    <script>
+      pipefyClient.onFinishAuthentication("<%= token %>");
+      setTimeout(function() { window.close() }, 500);
+    </script>
+  </body>
+</html>

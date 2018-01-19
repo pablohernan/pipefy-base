@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" media="all" href="https://s3.amazonaws.com/pipestyle/3.5.12/assets/stylesheets/platform-apps.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+    <style>
+      svg {
+        fill: currentColor;
+      }
+    </style>
+</head>
+  <body>
+
+
+
+
+      <label for="shopping"><b class="pp-label-text">Shopping</b></label>
+      <select id="shopping" name="shopping" class="pp-custom-select" onchange="populaEmpresa($(this).val())"> 
+      <!--
+        <option value="1">Shopping 1</option>
+        <option value="2">Shopping 2</option>
+        <option value="3">Shopping 3</option>
+        <option value="4">Shopping 4</option>
+      -->  
+      </select>
+<br>      
+      <label for="empresa"><b class="pp-label-text">Empresa</b></label>
+      <select id="empresa" name="empresa" class="pp-custom-select" onchange="alert(this.selectedIndex)"> 
+      <!--
+        <option value="1">Empresa 1</option>
+        <option value="2">Empresa 2</option>
+        <option value="3">Empresa 3</option>
+        <option value="4">Empresa 4</option>
+      -->  
+      </select>
+
+<script>
+
+  /* popula shopping*/
+  $.ajax({ 
+      url: "/services/shoppings.json?"+Math.random()
+  }).then(function(data) {
+        //var data = JSON.parse(data);  
+        for( var i = 0 ; i < data.length ; i++ ){
+            $('#shopping').append('<option value=' + data[i].value + '>' + data[i].value + ' - ' +data[i].text + '</option>'); 
+        } 
+        if(data.length>0)
+          populaEmpresa(data[0].value);
+  });
+  /* popula shopping*/
+
+  function populaEmpresa(value){
+    /* popula empresa*/
+    $.ajax({ 
+        url: "/services/empresas.json?"+Math.random()
+    }).then(function(data) {
+          //var data = JSON.parse(data);  
+          $('#empresa').html('');
+          for( var i = 0 ; i < data.length ; i++ ){
+              $('#empresa').append('<option value=' + data[i].value + '>id do shopping:' + value + ' - ' +data[i].text + '</option>'); 
+          }     
+    });
+    /* popula empresa*/
+  }
+
+
+</script>
+
+  </body>
+</html>

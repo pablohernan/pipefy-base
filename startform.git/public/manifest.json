@@ -1,0 +1,15 @@
+{
+  "name": "Dm Consultoria - Integração ",
+  "short_description": "Integração com PiPefy",
+  "description": "Integração com PiPefy",
+  "icon": "./images/icon.png",
+  "author": "DMConsultoria",
+  "init_url": "./",
+  "screenshots": ["./images/screenshots/1.png"],
+  "features": [
+    "card-buttons",
+    "card-badges",
+    "pipe-buttons",
+    "settings-button"
+  ]
+}

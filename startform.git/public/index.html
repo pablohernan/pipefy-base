@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <script src="https://d1ukdhoxof1oxs.cloudfront.net/client.js"></script>
+    <script src="https://unpkg.com/github-api/dist/GitHub.bundle.min.js"></script>
+    <script type="text/javascript" src="./js/table.js"></script>
+    <script>
+      // Use Promise available from pipefyClient
+      var Promise = pipefyClient.Promise;
+      var ICON_WHITE = "./images/icon-white.svg";
+      var ICON_BLACK = "./images/icon.svg";
+      var ICON_GRAY = "./images/icon-gray.svg";
+
+      var ICON_PR_YELLOW = "./images/icon-pr-yellow.svg";
+      var ICON_PR_GREEN = "./images/icon-pr-green.svg";
+
+      var showInitialDropdown = function(p) {
+        // Simple list of items with callback
+        p.dropdown({
+          title: 'Shopping',
+          items: [
+            {
+              title: 'Barra Shopping',
+              callback:  function(p) { p.showNotification('Barra shopping selecionado', 'success'); },
+            },
+            {
+              title: 'Downtown',
+              callback: function(p) { /*p.modal(...)*/ },
+            },
+            {
+              title: 'Salvador Shopping',
+              callback: function(p) { p.closeCard() },
+            },
+          ]
+        });
+      };
+
+     
+
+      document.addEventListener("DOMContentLoaded", function(event) {
+        pipefyClient.initCall({
+          'card-tab': function(p, options) {
+            return {
+              icon: './images/power-cord.svg',
+              title: 'DM Consultoria',
+              url: './form.html',
+              claimedAttachments: function(attachments) {
+                // Iterate by all attachment to claim attachments from Github
+                return attachments.filter(function(attachment){
+                  return attachment.url.indexOf('https://github.com') === 0;
+                });
+              },
+              buttons: [
+                {
+                  text: 'Salvar',
+                  callback: function(p) {
+                    //showInitialDropdown(p);
+                    createtable();
+                    
+                    p.showNotification('Formulario salvo!', 'success');
+                    /*
+                    getToken(p).then(function(token) {
+                      if (token && token !== "null") {
+                        showInitialDropdown(p);
+                      } else {
+                        showAuthorizeDropdown(p);
+                      }
+                    });*/
+                  }
+                },
+              ]
+            }
+          },
+        });
+
+        // Cache Github token when App starts
+        var p  = pipefyClient.client()
+        p.get('pipe', 'private', 'token').then(function(newToken) {
+          var tokenKey = 'githubToken' + p.pipeId;
+          try {
+            sessionStorage.setItem(tokenKey, newToken);
+          } catch(err) {
+          }
+        })
+      });
+    </script>
+  </body>
+</html>
